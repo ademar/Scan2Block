@@ -3,6 +3,8 @@ open System
 open System.IO
 open System.Text
 
+let mutable debugging = false
+
 let readTail (path : string) (numberOfTokens : int64) (encoding : Encoding) (tokenSeparator : string) =
     
     let sizeOfChar = encoding.GetByteCount("\n") |> int64
@@ -57,6 +59,9 @@ let execute cmd args =
 open System.Collections.Generic
 open System.Text.RegularExpressions
 
+let inline debug (str : string) = 
+  if debugging then Console.WriteLine ("DEBUG: " + str)
+
 let processFile offending extractIpAddress block n fileName =
   try
       printfn "processFile: %s" fileName
@@ -67,6 +72,7 @@ let processFile offending extractIpAddress block n fileName =
       let dictionary = Dictionary<string,int>()
 
       for line in lines do
+        debug line
         if offending line then
           let ipAddress = extractIpAddress line
           match dictionary.TryGetValue ipAddress with
@@ -80,6 +86,7 @@ let processFile offending extractIpAddress block n fileName =
       for ipAddress in dictionary.Keys do
         printfn "ip: %s, %d" ipAddress (dictionary.[ipAddress])
         if dictionary.[ipAddress] > n then
+          printfn "Blocking %s" ipAddress
           block ipAddress
     with ex ->
       printfn "processFile FAILED with: %A" ex
@@ -94,13 +101,21 @@ let offending (line: string) =
   line.Contains("POST /wp-login.php") || line.Contains("POST /xmlrpc.php")
 
 let block ipAddress =
-  printf "block %s" ipAddress
-  let out = execute "netsh" (sprintf "advfirewall firewall add rule name=\"Blackhole %s\" dir=in protocol=any action=block remoteip=%s" ipAddress ipAddress)
+  printfn "Checking if already blocked."
+  let out = execute "netsh" (sprintf "advfirewall firewall show rule name=\"Blackhole %s\"" ipAddress)
   Console.WriteLine out
+  if out.Contains("No rules match the specified criteria.") then
+    printfn "Block %s" ipAddress
+    let out = execute "netsh" (sprintf "advfirewall firewall add rule name=\"Blackhole %s\" dir=in protocol=any action=block remoteip=%s" ipAddress ipAddress)
+    Console.WriteLine out
+  else
+    Console.WriteLine "Already blocked."
 
 
 [<EntryPoint>]
 let main argv =
+
+  argv |> Array.iter( fun arg -> if arg = "debug" then debugging <- true)
 
   let rootDir = @"D:\LogFiles"
 
