@@ -91,7 +91,7 @@ let extractIpAddress (line : string) =
   matches.[1].Value
 
 let offending (line: string) = 
-  line.Contains("POST /wp-login.php")
+  line.Contains("POST /wp-login.php") || line.Contains("POST /xmlrpc.php")
 
 let block ipAddress =
   printf "block %s\n" ipAddress
