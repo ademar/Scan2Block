@@ -59,7 +59,7 @@ open System.Text.RegularExpressions
 
 let processFile offending extractIpAddress block n fileName =
   try
-      printfn "processFile: %s\n" fileName
+      printfn "processFile: %s" fileName
       let tail = readTail fileName 25L Encoding.UTF8 "\r\n"
 
       let lines = tail.Split([|"\r\n"|], StringSplitOptions.None)
@@ -75,14 +75,14 @@ let processFile offending extractIpAddress block n fileName =
           | _ ->
             dictionary.Add(ipAddress, 0)
 
-      printfn "Analizing collected IP addresses\n"
+      printfn "Analizing collected IP addresses."
       // scan dictionary, ipAddress with more than N infractions will be blocked.
       for ipAddress in dictionary.Keys do
-        printfn "ip: %s, %d\n" ipAddress (dictionary.[ipAddress])
+        printfn "ip: %s, %d" ipAddress (dictionary.[ipAddress])
         if dictionary.[ipAddress] > n then
           block ipAddress
     with ex ->
-      printfn "processFile FAILED with: %A\n" ex
+      printfn "processFile FAILED with: %A" ex
 
 let extractIpAddress (line : string) = 
   let ip = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")
@@ -94,7 +94,7 @@ let offending (line: string) =
   line.Contains("POST /wp-login.php") || line.Contains("POST /xmlrpc.php")
 
 let block ipAddress =
-  printf "block %s\n" ipAddress
+  printf "block %s" ipAddress
   let out = execute "netsh" (sprintf "advfirewall firewall add rule name=\"Blackhole %s\" dir=in protocol=any action=block remoteip=%s" ipAddress ipAddress)
   Console.WriteLine out
 
@@ -107,7 +107,7 @@ let main argv =
   // enumerate folders, there is one for each website
   for dir in Directory.EnumerateDirectories(rootDir) do
 
-    printfn "Directory: %s\n" dir
+    printfn "Directory: %s" dir
 
     let files = 
       Directory.EnumerateFiles(dir,"*.log")
