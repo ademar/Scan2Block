@@ -135,7 +135,7 @@ let main argv =
   argv |> Array.iter( fun arg -> if arg = "debug" then debugging <- true)
 
   let rootDir = @"D:\LogFiles"
-  let sleepTime = 5 * 600000 // 5 minute
+  let sleepTime = 300000 // 5 minutes
   
   while true do
     printfn "Scanning %s .." rootDir
