@@ -2,6 +2,7 @@
 open System
 open System.IO
 open System.Text
+open System.Threading
 
 let mutable debugging = false
 
@@ -111,14 +112,8 @@ let block ipAddress =
   else
     Console.WriteLine "Already blocked."
 
-
-[<EntryPoint>]
-let main argv =
-
-  argv |> Array.iter( fun arg -> if arg = "debug" then debugging <- true)
-
-  let rootDir = @"D:\LogFiles"
-
+let scan (rootDir: string) =
+  
   // enumerate folders, there is one for each website
   for dir in Directory.EnumerateDirectories(rootDir) do
 
@@ -132,5 +127,19 @@ let main argv =
     if Seq.length files > 1 then
       let fileName = (Seq.head files).FullName
       processFile offending extractIpAddress block 5 fileName
+
+
+[<EntryPoint>]
+let main argv =
+
+  argv |> Array.iter( fun arg -> if arg = "debug" then debugging <- true)
+
+  let rootDir = @"D:\LogFiles"
+  let sleepTime = 5 * 600000 // 5 minute
   
+  while true do
+    printfn "Scanning %s .." rootDir
+    scan rootDir
+    printfn "Sleeping .."
+    Thread.Sleep sleepTime
   0 // exit
