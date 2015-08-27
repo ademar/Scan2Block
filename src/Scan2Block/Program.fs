@@ -66,7 +66,7 @@ let inline debug (str : string) =
 let processFile offending extractIpAddress block n fileName =
   try
       printfn "processFile: %s" fileName
-      let tail = readTail fileName 25L Encoding.UTF8 "\r\n"
+      let tail = readTail fileName 100L Encoding.UTF8 "\r\n"
 
       let lines = tail.Split([|"\r\n"|], StringSplitOptions.None)
 
@@ -126,7 +126,7 @@ let scan (rootDir: string) =
     
     if Seq.length files > 1 then
       let fileName = (Seq.head files).FullName
-      processFile offending extractIpAddress block 5 fileName
+      processFile offending extractIpAddress block 4 fileName
 
 
 [<EntryPoint>]
