@@ -101,18 +101,24 @@ let extractIpAddress (line : string) =
 let offending (line: string) = 
   line.Contains("POST /wp-login.php") || line.Contains("POST /xmlrpc.php")
 
-let block ipAddress =
-  printfn "Checking if already blocked."
-  let out = execute "netsh" (sprintf "advfirewall firewall show rule name=\"Blackhole %s\"" ipAddress)
-  Console.WriteLine out
-  if out.Contains("No rules match the specified criteria.") then
-    printfn "Block %s" ipAddress
-    let out = execute "netsh" (sprintf "advfirewall firewall add rule name=\"Blackhole %s\" dir=in protocol=any action=block remoteip=%s" ipAddress ipAddress)
+let block isWhitelisted ipAddress =
+  if not (isWhitelisted ipAddress) then
+    printfn "Checking if already blocked."
+    let out = execute "netsh" (sprintf "advfirewall firewall show rule name=\"Blackhole %s\"" ipAddress)
     Console.WriteLine out
+    if out.Contains("No rules match the specified criteria.") then
+      printfn "Block %s" ipAddress
+      let out = execute "netsh" (sprintf "advfirewall firewall add rule name=\"Blackhole %s\" dir=in protocol=any action=block remoteip=%s" ipAddress ipAddress)
+      Console.WriteLine out
+    else
+      Console.WriteLine "Already blocked."
   else
-    Console.WriteLine "Already blocked."
+    printfn "Whitelisted: %s" ipAddress
 
-let scan (rootDir: string) =
+let scan whitelisted (rootDir: string) =
+
+  let isWhitelisted ipAddress =
+    Array.contains ipAddress whitelisted
   
   // enumerate folders, there is one for each website
   for dir in Directory.EnumerateDirectories(rootDir) do
@@ -126,20 +132,29 @@ let scan (rootDir: string) =
     
     if Seq.length files > 1 then
       let fileName = (Seq.head files).FullName
-      processFile offending extractIpAddress block 4 fileName
+      processFile offending extractIpAddress (block isWhitelisted) 4 fileName
 
+let whitelistedFilename = "whitelisted.txt"
+
+let loadWhitelisted _ =
+  if File.Exists whitelistedFilename then
+    File.ReadAllLines whitelistedFilename
+  else
+    Array.empty
 
 [<EntryPoint>]
 let main argv =
 
   argv |> Array.iter( fun arg -> if arg = "debug" then debugging <- true)
 
+  let whitelisted = loadWhitelisted ()
+
   let rootDir = @"D:\LogFiles"
   let sleepTime = 300000 // 5 minutes
   
   while true do
     printfn "Scanning %s .." rootDir
-    scan rootDir
+    scan whitelisted rootDir
     printfn "Sleeping .."
     Thread.Sleep sleepTime
   0 // exit
